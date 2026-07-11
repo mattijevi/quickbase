@@ -36,8 +36,9 @@ defmodule Quickbase do
       and tune for production pools.
 
   Read-only calls (`query_records/2`, `run_report/3`, `list_fields/2`,
-  `list_tables/2`) are retried on transient failures via Req's built-in
-  retry; mutations (`upsert_records/3`, `delete_records/3`) are not.
+  `list_tables/2`, `get_table/3`) are retried on transient failures via
+  Req's built-in retry; mutations (`upsert_records/3`, `delete_records/3`,
+  `create_field/3`) are not.
   """
 
   @type client :: Req.Request.t()
@@ -206,6 +207,77 @@ defmodule Quickbase do
   @doc "Same as `list_tables/2` but returns the body and raises on failure."
   @spec list_tables!(client(), String.t()) :: list()
   def list_tables!(client, app_id), do: bang(list_tables(client, app_id))
+
+  @doc "Gets a table's metadata (`GET /tables/{tableId}`)."
+  @spec get_table(client(), String.t(), String.t()) :: response()
+  def get_table(client, table_id, app_id) do
+    client
+    |> Req.get(url: "/tables/#{table_id}", params: [appId: app_id], retry: :transient)
+    |> handle()
+  end
+
+  @doc "Same as `get_table/3` but returns the body and raises on failure."
+  @spec get_table!(client(), String.t(), String.t()) :: map()
+  def get_table!(client, table_id, app_id), do: bang(get_table(client, table_id, app_id))
+
+  @doc """
+  Creates a field on a table (`POST /fields`).
+
+      Quickbase.create_field(client, "bck7gp3q2", %{"label" => "Status", "fieldType" => "text"})
+  """
+  @spec create_field(client(), String.t(), map()) :: response()
+  def create_field(client, table_id, field) do
+    client |> Req.post(url: "/fields", params: [tableId: table_id], json: field) |> handle()
+  end
+
+  @doc "Same as `create_field/3` but returns the body and raises on failure."
+  @spec create_field!(client(), String.t(), map()) :: map()
+  def create_field!(client, table_id, field), do: bang(create_field(client, table_id, field))
+
+  @doc """
+  Downloads a file attachment (`GET /files/{tableId}/{recordId}/{fieldId}/{versionNumber}`).
+
+  Returns the raw file bytes as the body.
+  """
+  @spec download_file(
+          client(),
+          String.t(),
+          integer() | String.t(),
+          integer() | String.t(),
+          integer() | String.t()
+        ) ::
+          response()
+  def download_file(client, table_id, record_id, field_id, version_number \\ 0) do
+    client
+    |> Req.get(url: "/files/#{table_id}/#{record_id}/#{field_id}/#{version_number}")
+    |> handle()
+  end
+
+  @doc "Same as `download_file/5` but returns the body and raises on failure."
+  @spec download_file!(
+          client(),
+          String.t(),
+          integer() | String.t(),
+          integer() | String.t(),
+          integer() | String.t()
+        ) ::
+          binary()
+  def download_file!(client, table_id, record_id, field_id, version_number \\ 0),
+    do: bang(download_file(client, table_id, record_id, field_id, version_number))
+
+  @doc """
+  Gets a temporary authorization token for an app or table, for embedding
+  in browser code without exposing a user token
+  (`GET /auth/temporary/{dbid}`).
+  """
+  @spec get_temp_token(client(), String.t()) :: response()
+  def get_temp_token(client, dbid) do
+    client |> Req.get(url: "/auth/temporary/#{dbid}") |> handle()
+  end
+
+  @doc "Same as `get_temp_token/2` but returns the body and raises on failure."
+  @spec get_temp_token!(client(), String.t()) :: map()
+  def get_temp_token!(client, dbid), do: bang(get_temp_token(client, dbid))
 
   ## Row helpers
 
