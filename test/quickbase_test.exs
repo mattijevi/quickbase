@@ -115,6 +115,51 @@ defmodule QuickbaseTest do
              Quickbase.delete_records(client(), "tbl", "{'3'.EX.'1'}")
   end
 
+  test "get_table/3 gets table metadata with appId param" do
+    Req.Test.stub(__MODULE__, fn conn ->
+      assert conn.method == "GET"
+      assert conn.request_path == "/v1/tables/tbl"
+      assert conn.query_string == "appId=app"
+      Req.Test.json(conn, %{"id" => "tbl", "name" => "Tasks"})
+    end)
+
+    assert {:ok, %{"id" => "tbl"}} = Quickbase.get_table(client(), "tbl", "app")
+  end
+
+  test "create_field/3 posts the field body with tableId param" do
+    Req.Test.stub(__MODULE__, fn conn ->
+      assert conn.method == "POST"
+      assert conn.request_path == "/v1/fields"
+      assert conn.query_string == "tableId=tbl"
+      {:ok, raw, conn} = Plug.Conn.read_body(conn)
+      assert Jason.decode!(raw) == %{"label" => "Status", "fieldType" => "text"}
+      Req.Test.json(conn, %{"id" => 10, "label" => "Status"})
+    end)
+
+    assert {:ok, %{"id" => 10}} =
+             Quickbase.create_field(client(), "tbl", %{"label" => "Status", "fieldType" => "text"})
+  end
+
+  test "download_file/5 gets the file bytes at the versioned path" do
+    Req.Test.stub(__MODULE__, fn conn ->
+      assert conn.method == "GET"
+      assert conn.request_path == "/v1/files/tbl/1/6/0"
+      Req.Test.text(conn, "raw-bytes")
+    end)
+
+    assert {:ok, "raw-bytes"} = Quickbase.download_file(client(), "tbl", 1, 6)
+  end
+
+  test "get_temp_token/2 gets a temporary token for a dbid" do
+    Req.Test.stub(__MODULE__, fn conn ->
+      assert conn.method == "GET"
+      assert conn.request_path == "/v1/auth/temporary/app"
+      Req.Test.json(conn, %{"temporaryAuthorization" => "abc"})
+    end)
+
+    assert {:ok, %{"temporaryAuthorization" => "abc"}} = Quickbase.get_temp_token(client(), "app")
+  end
+
   test "stream_records/2 pages until totalRecords reached" do
     agent = start_supervised!({Agent, fn -> 0 end})
 

@@ -73,6 +73,29 @@ Req.Test.stub(MyStub, fn conn ->
 end)
 ```
 
+## Debugging
+
+`new/1` returns a plain `Req.Request`, so attach logging steps with
+[`Req.Request`](https://hexdocs.pm/req/Req.Request.html) to see every
+request and response:
+
+```elixir
+client =
+  Quickbase.new(realm: "r", token: "t")
+  |> Req.Request.append_request_steps(
+    log_request: fn req ->
+      Logger.debug("quickbase: #{req.method} #{req.url}")
+      req
+    end
+  )
+  |> Req.Request.append_response_steps(
+    log_response: fn {req, resp} ->
+      Logger.debug("quickbase: #{resp.status}")
+      {req, resp}
+    end
+  )
+```
+
 ## License
 
 MIT
