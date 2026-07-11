@@ -246,7 +246,7 @@ defmodule Quickbase do
           integer() | String.t(),
           integer() | String.t()
         ) ::
-          response()
+          {:ok, binary()} | {:error, Quickbase.Error.t() | Exception.t()}
   def download_file(client, table_id, record_id, field_id, version_number \\ 0) do
     client
     |> Req.get(url: "/files/#{table_id}/#{record_id}/#{field_id}/#{version_number}")
