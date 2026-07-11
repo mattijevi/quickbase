@@ -14,7 +14,8 @@ defmodule Quickbase.MixProject do
       description: "Elixir client for the Quickbase JSON RESTful API",
       package: package(),
       docs: docs(),
-      source_url: @source_url
+      source_url: @source_url,
+      dialyzer: [plt_core_path: "priv/plts", plt_local_path: "priv/plts"]
     ]
   end
 
@@ -28,7 +29,9 @@ defmodule Quickbase.MixProject do
     [
       {:req, "~> 0.5"},
       {:plug, "~> 1.15", only: :test},
-      {:ex_doc, "~> 0.34", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.34", only: :dev, runtime: false},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
     ]
   end
 
